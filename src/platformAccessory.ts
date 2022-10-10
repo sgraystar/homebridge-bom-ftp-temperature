@@ -1,105 +1,65 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-
-import { ExampleHomebridgePlatform } from './platform';
+import { BoMForecastPlatform } from './platform';
+const ftp = require('basic-ftp');
+import { XMLParser } from 'fast-xml-parser';
+import os from 'node:os';
+import * as fs from 'node:fs';
 
 /**
  * Platform Accessory
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class ExamplePlatformAccessory {
+export class BoMForecastAccessory {
   private service: Service;
 
-  /**
-   * These are just used to create a working example
-   * You should implement your own code to track the state of your accessory
-   */
-  private exampleStates = {
-    On: false,
-    Brightness: 100,
-  };
-
   constructor(
-    private readonly platform: ExampleHomebridgePlatform,
+    private readonly platform: BoMForecastPlatform,
     private readonly accessory: PlatformAccessory,
   ) {
 
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Default-Manufacturer')
-      .setCharacteristic(this.platform.Characteristic.Model, 'Default-Model')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, 'Default-Serial');
-
-    // get the LightBulb service if it exists, otherwise create a new LightBulb service
-    // you can create multiple services for each accessory
-    this.service = this.accessory.getService(this.platform.Service.Lightbulb) || this.accessory.addService(this.platform.Service.Lightbulb);
-
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.exampleDisplayName);
-
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Lightbulb
-
-    // register handlers for the On/Off Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On)
-      .onSet(this.setOn.bind(this))                // SET - bind to the `setOn` method below
-      .onGet(this.getOn.bind(this));               // GET - bind to the `getOn` method below
-
-    // register handlers for the Brightness Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.Brightness)
-      .onSet(this.setBrightness.bind(this));       // SET - bind to the 'setBrightness` method below
+      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Homebridge')
+      .setCharacteristic(this.platform.Characteristic.Model, 'BoM FTP Temperature')
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, accessory.context.device.bomproductid);
 
     /**
-     * Creating multiple services of the same type.
-     *
-     * To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
-     * when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-     * this.accessory.getService('NAME') || this.accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE_ID');
-     *
-     * The USER_DEFINED_SUBTYPE must be unique to the platform accessory (if you platform exposes multiple accessories, each accessory
-     * can use the same sub type id.)
+     * get the TemperatureSensor service if it exists, otherwise create a new TemperatureSensor service
+     * you can create multiple services for each accessory
+     * set the service name, this is what is displayed as the default name on the Home app
+     * in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
+     * each service must implement at-minimum the "required characteristics" for the given service type
+     * see https://developers.homebridge.io/#/service/TemperatureSensor
      */
 
-    // Example: add two "motion sensor" services to the accessory
-    const motionSensorOneService = this.accessory.getService('Motion Sensor One Name') ||
-      this.accessory.addService(this.platform.Service.MotionSensor, 'Motion Sensor One Name', 'YourUniqueIdentifier-1');
+    const serviceName1 = accessory.context.device.label + ' Forecast Max';
+    const serviceSubtype1 = accessory.context.device.bomproductid + '-max';
+    this.service = this.accessory.getService(serviceName1) ||
+      this.accessory.addService(this.platform.Service.TemperatureSensor, serviceName1, serviceSubtype1);
+    //const serviceName2 = accessory.context.device.label + ' Forecast Min';
+    //const serviceSubtype2 = accessory.context.device.bomproductid + '-min';
+    //this.service = this.accessory.getService(serviceName2) ||
+    //  this.accessory.addService(this.platform.Service.TemperatureSensor, serviceName2, serviceSubtype2);
 
-    const motionSensorTwoService = this.accessory.getService('Motion Sensor Two Name') ||
-      this.accessory.addService(this.platform.Service.MotionSensor, 'Motion Sensor Two Name', 'YourUniqueIdentifier-2');
+    // register handlers for the Get Characteristic
+    this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+      .onGet(this.getTemp.bind(this));               // GET - bind to the `getTemp` method below
+
+    // Add "temperature sensor" services to the accessory
+    const temperatureSensorMaxService = this.accessory.getService(serviceName1) ||
+      this.accessory.addService(this.platform.Service.TemperatureSensor, serviceName1, serviceSubtype1);
+    //const temperatureSensorMinService = this.accessory.getService(serviceName2) ||
+    //  this.accessory.addService(this.platform.Service.TemperatureSensor, serviceName2, serviceSubtype2);
 
     /**
-     * Updating characteristics values asynchronously.
-     *
-     * Example showing how to update the state of a Characteristic asynchronously instead
-     * of using the `on('get')` handlers.
-     * Here we change update the motion sensor trigger states on and off every 10 seconds
-     * the `updateCharacteristic` method.
-     *
+     * Download the BoM forecast file, extract forecast temperatures and the next routine issue time, then schedule ongoing
+     * updates to the forecast temperature
      */
-    let motionDetected = false;
-    setInterval(() => {
-      // EXAMPLE - inverse the trigger
-      motionDetected = !motionDetected;
-
-      // push the new value to HomeKit
-      motionSensorOneService.updateCharacteristic(this.platform.Characteristic.MotionDetected, motionDetected);
-      motionSensorTwoService.updateCharacteristic(this.platform.Characteristic.MotionDetected, !motionDetected);
-
-      this.platform.log.debug('Triggering motionSensorOneService:', motionDetected);
-      this.platform.log.debug('Triggering motionSensorTwoService:', !motionDetected);
-    }, 10000);
-  }
-
-  /**
-   * Handle "SET" requests from HomeKit
-   * These are sent when the user changes the state of an accessory, for example, turning on a Light bulb.
-   */
-  async setOn(value: CharacteristicValue) {
-    // implement your own code to turn your device on/off
-    this.exampleStates.On = value as boolean;
-
-    this.platform.log.debug('Set Characteristic On ->', value);
+    const remoteFile = this.accessory.context.device.bomproductid + '.xml';
+    const downloadDelay = this.accessory.context.device.downloaddelay;
+    this.scheduleUpdates(remoteFile, downloadDelay, temperatureSensorMaxService);
+    //this.scheduleUpdates(remoteFile, temperatureSensorMaxService, temperatureSensorMinService);
   }
 
   /**
@@ -111,31 +71,122 @@ export class ExamplePlatformAccessory {
    *
    * If your device takes time to respond you should update the status of your device
    * asynchronously instead using the `updateCharacteristic` method instead.
-
-   * @example
+   *
    * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
    */
-  async getOn(): Promise<CharacteristicValue> {
-    // implement your own code to check if the device is on
-    const isOn = this.exampleStates.On;
+  async getTemp(): Promise<CharacteristicValue> {
 
-    this.platform.log.debug('Get Characteristic On ->', isOn);
+    let cacheTemp = this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).value;
+    if (cacheTemp == null) {
+      cacheTemp = -270;
+    }
+    this.platform.log.debug('Get Characteristic CurrentTemperature ->', cacheTemp);
 
-    // if you need to return an error to show the device as "Not Responding" in the Home app:
-    // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-
-    return isOn;
+    return cacheTemp;
   }
 
   /**
-   * Handle "SET" requests from HomeKit
-   * These are sent when the user changes the state of an accessory, for example, changing the Brightness
+   * Updating characteristics values asynchronously.
+   *
+   * Here we change update the temperature sensor current temperature every 10 seconds using
+   * the `updateCharacteristic` method.
+   *
    */
-  async setBrightness(value: CharacteristicValue) {
-    // implement your own code to set the brightness
-    this.exampleStates.Brightness = value as number;
+  async scheduleUpdates(remoteFile, downloadDelay, temperatureSensorMaxService) {
+    try {
+      // Download the BoM file
+      const localFile = (os.tmpdir() + '\\' + remoteFile);
+      await this.downloadFromBoM(localFile, remoteFile);
 
-    this.platform.log.debug('Set Characteristic Brightness -> ', value);
+      // Parse the xml file for temperatures & next issue time
+      const bomJson = await this.bomXmlToJson(localFile);
+      //this.platform.log.debug(JSON.stringify(bomJson, null, 2));
+
+      // Extract forecast maximum temperature and push the new forecast temperature value to HomeKit
+      try {
+        const air_temperature_maximum = bomJson[1].product[1].forecast[2].area[0]['forecast-period'][1].element[0]['#text'];
+
+        const maxTemp = Number(air_temperature_maximum);
+        temperatureSensorMaxService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, maxTemp);
+        this.platform.log.debug('New temperature', this.service.displayName, maxTemp);
+
+      // air_temperature_maximum for today is not always present in the file
+      } catch (error) {
+        this.platform.log.debug('forecast max not found for today', this.service.displayName);
+
+      } finally {
+        // Extract the next routine issue time
+        const nextIssueTime = bomJson[1].product[0].amoc[8]['next-routine-issue-time-utc'][0]['#text'];
+
+        const downloadOffset = downloadDelay * 60 * 1000;
+        const d1ms = new Date().getTime();
+        const d2ms = new Date(nextIssueTime).getTime();
+        const nextDownload = d2ms - d1ms + downloadOffset;
+        this.platform.log.debug('nextDownload =', nextDownload);
+
+        if (temperatureSensorMaxService !== undefined) {
+          setTimeout(() => {
+            this.scheduleUpdates(remoteFile, downloadDelay, temperatureSensorMaxService);
+          }, nextDownload );
+        }
+      }
+
+    // Download or parse failed, maybe invalid arguments, maybe temporary, try again in 1 hour
+    } catch (error) {
+      this.platform.log.debug('error:', error);
+      const nextDownload = 60 * 60 * 1000;
+      this.platform.log.debug('nextDownload =', nextDownload);
+
+      if (temperatureSensorMaxService !== undefined) {
+        setTimeout(() => {
+          this.scheduleUpdates(remoteFile, downloadDelay, temperatureSensorMaxService);
+        }, nextDownload );
+      }
+    }
+  }
+
+  /**
+   * Download the BoM Forecast file
+   */
+  async downloadFromBoM(dstFile, srcFile) {
+    const client = new ftp.Client();
+    client.ftp.verbose = false;
+    try {
+      await client.access({
+        host: 'ftp.bom.gov.au',
+      });
+      await client.cd('anon/gen/fwo/');
+      const promise1 = await client.list(srcFile);
+      const promise2 = await client.downloadTo(dstFile, srcFile);
+      await Promise.all([promise1, promise2]);
+
+    } catch(err) {
+      this.platform.log.debug('error: ' + err);
+    }
+    client.close();
+  }
+
+  /**
+   * Parse the BoM Forecast file
+   */
+  async bomXmlToJson(srcFile) {
+    try {
+      const xmlData = fs.readFileSync(srcFile, 'utf8');
+
+      const options = {
+        ignoreAttributes : false,
+        attributeNamePrefix : '@_',
+        preserveOrder: true,
+      };
+      const parser = new XMLParser(options);
+      const jsonObj = parser.parse(xmlData);
+
+      return jsonObj;
+
+    } catch(err) {
+      this.platform.log.debug('error: ' + err);
+    }
+
   }
 
 }
