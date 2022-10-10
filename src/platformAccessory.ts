@@ -1,6 +1,6 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { BoMForecastPlatform } from './platform';
-const ftp = require('basic-ftp');
+import ftp = require('basic-ftp');
 import { XMLParser } from 'fast-xml-parser';
 import os from 'node:os';
 import * as fs from 'node:fs';
@@ -77,7 +77,7 @@ export class BoMForecastAccessory {
   async getTemp(): Promise<CharacteristicValue> {
 
     let cacheTemp = this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).value;
-    if (cacheTemp == null) {
+    if (cacheTemp === null) {
       cacheTemp = -270;
     }
     this.platform.log.debug('Get Characteristic CurrentTemperature ->', cacheTemp);
