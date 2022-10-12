@@ -51,8 +51,15 @@ export class BoMForecastPlatform implements DynamicPlatformPlugin {
    */
   discoverDevices() {
 
+    // Ignore locations that duplicate BoM Product ID
+    const copyLocations = this.config.locations;
+    const uniqueLocations = copyLocations.filter(
+      (location, index) => index === copyLocations.findIndex(other => location.bomproductid === other.bomproductid),
+    );
+
     // loop over the discovered devices and register each one if it has not already been registered
-    for (const device of this.config.locations) {
+    //for (const device of this.config.locations) {
+    for (const device of uniqueLocations) {
 
       // Check that the format of the BoM Product ID is valid
       const id = device.bomproductid.toString();
@@ -98,6 +105,16 @@ export class BoMForecastPlatform implements DynamicPlatformPlugin {
           // the `context` property can be used to store any data about the accessory you may need
           accessory.context.device = device;
 
+          const delayMinutesLower = 0;
+          const delayMinutesUpper = 59;
+          if (this.config.delayminutes < delayMinutesLower) {
+            accessory.context.delayMinutes = delayMinutesLower;
+          } else if (this.config.delayminutes > delayMinutesUpper) {
+            accessory.context.delayMinutes = delayMinutesUpper;
+          } else {
+            accessory.context.delayMinutes = this.config.delayminutes;
+          }
+
           // create the accessory handler for the newly create accessory
           // this is imported from `platformAccessory.ts`
           new BoMForecastAccessory(this, accessory);
@@ -106,8 +123,9 @@ export class BoMForecastPlatform implements DynamicPlatformPlugin {
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
       } else {
-        this.log.info('Ignoring invalid BoM Product ID', id);
+        this.log.info('Invalid BoM Product ID', id);
       }
     }
+
   }
 }

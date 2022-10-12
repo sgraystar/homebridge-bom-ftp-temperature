@@ -33,14 +33,10 @@ export class BoMForecastAccessory {
      * see https://developers.homebridge.io/#/service/TemperatureSensor
      */
 
-    const serviceName1 = accessory.context.device.label + ' Forecast Max';
+    const serviceName1 = accessory.context.device.label + ' Today Max';
     const serviceSubtype1 = accessory.context.device.bomproductid + '-max';
     this.service = this.accessory.getService(serviceName1) ||
       this.accessory.addService(this.platform.Service.TemperatureSensor, serviceName1, serviceSubtype1);
-    //const serviceName2 = accessory.context.device.label + ' Forecast Min';
-    //const serviceSubtype2 = accessory.context.device.bomproductid + '-min';
-    //this.service = this.accessory.getService(serviceName2) ||
-    //  this.accessory.addService(this.platform.Service.TemperatureSensor, serviceName2, serviceSubtype2);
 
     // register handlers for the Get Characteristic
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
@@ -49,17 +45,14 @@ export class BoMForecastAccessory {
     // Add "temperature sensor" services to the accessory
     const temperatureSensorMaxService = this.accessory.getService(serviceName1) ||
       this.accessory.addService(this.platform.Service.TemperatureSensor, serviceName1, serviceSubtype1);
-    //const temperatureSensorMinService = this.accessory.getService(serviceName2) ||
-    //  this.accessory.addService(this.platform.Service.TemperatureSensor, serviceName2, serviceSubtype2);
 
     /**
      * Download the BoM forecast file, extract forecast temperatures and the next routine issue time, then schedule ongoing
      * updates to the forecast temperature
      */
     const remoteFile = this.accessory.context.device.bomproductid + '.xml';
-    const downloadDelay = this.accessory.context.device.downloaddelay;
-    this.scheduleUpdates(remoteFile, downloadDelay, temperatureSensorMaxService);
-    //this.scheduleUpdates(remoteFile, temperatureSensorMaxService, temperatureSensorMinService);
+    const delayMinutes = this.accessory.context.delayMinutes;
+    this.scheduleUpdates(remoteFile, delayMinutes, temperatureSensorMaxService);
   }
 
   /**
@@ -80,69 +73,79 @@ export class BoMForecastAccessory {
     if (cacheTemp === null) {
       cacheTemp = -270;
     }
-    this.platform.log.debug('Get Characteristic CurrentTemperature ->', cacheTemp);
+    this.platform.log.debug(this.service.displayName, 'Get CurrentTemperature', cacheTemp);
 
     return cacheTemp;
   }
 
   /**
-   * Updating characteristics values asynchronously.
-   *
-   * Here we change update the temperature sensor current temperature every 10 seconds using
-   * the `updateCharacteristic` method.
-   *
+   * Updating characteristics values asynchronously using the `updateCharacteristic` method.
    */
-  async scheduleUpdates(remoteFile, downloadDelay, temperatureSensorMaxService) {
+  async scheduleUpdates(remoteFile, delayMinutes, temperatureSensorMaxService) {
     try {
       // Download the BoM file
       const localFile = (os.tmpdir() + '\\' + remoteFile);
       await this.downloadFromBoM(localFile, remoteFile);
 
-      // Parse the xml file for temperatures & next issue time
+      // Parse the xml file
       const bomJson = await this.bomXmlToJson(localFile);
-      //this.platform.log.debug(JSON.stringify(bomJson, null, 2));
+      //this.platform.log.debug('bomJson\n', JSON.stringify(bomJson, null, 2));
+      const bomJsonToday = bomJson[1].product[1].forecast[2].area[0];
+      this.platform.log.debug(this.service.displayName, 'conditions for today\n', JSON.stringify(bomJsonToday, null, 2));
 
-      // Extract forecast maximum temperature and push the new forecast temperature value to HomeKit
-      try {
-        const air_temperature_maximum = bomJson[1].product[1].forecast[2].area[0]['forecast-period'][1].element[0]['#text'];
+      /**
+       * Extract the forecast maximum temperature and push the new forecast temperature value to HomeKit
+       * The air_temperature_maximum for today changes index within forecast_period[], and is not always present
+       */
 
-        const maxTemp = Number(air_temperature_maximum);
-        temperatureSensorMaxService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, maxTemp);
-        this.platform.log.debug('New temperature', this.service.displayName, maxTemp);
+      //if (bomJson[1]?.product[1]?.forecast[2]?.area[0]?.forecast_period[1][':@']['@_type'] === 'air_temperature_maximum') {
+      //  const maxTemp = Number(bomJson[1].product[1].forecast[2].area[0].forecast_period[1].element[0].$text);
+      //}
 
-      // air_temperature_maximum for today is not always present in the file
-      } catch (error) {
-        this.platform.log.debug('forecast max not found for today', this.service.displayName);
-
-      } finally {
-        // Extract the next routine issue time
-        const nextIssueTime = bomJson[1].product[0].amoc[8]['next-routine-issue-time-utc'][0]['#text'];
-
-        const downloadOffset = downloadDelay * 60 * 1000;
-        const d1ms = new Date().getTime();
-        const d2ms = new Date(nextIssueTime).getTime();
-        const nextDownload = d2ms - d1ms + downloadOffset;
-        this.platform.log.debug('nextDownload =', nextDownload);
-
-        if (temperatureSensorMaxService !== undefined) {
-          setTimeout(() => {
-            this.scheduleUpdates(remoteFile, downloadDelay, temperatureSensorMaxService);
-          }, nextDownload );
+      for(const key1 in bomJsonToday) {
+        for (const key2 in bomJsonToday[key1]) {
+          for (const key3 in bomJsonToday[key1][key2]) {
+            for (const key4 in bomJsonToday[key1][key2][key3]) {
+              if (bomJsonToday[key1][key2][key3][key4] === 'air_temperature_maximum') {
+                const maxTemp = Number(bomJsonToday[key1][key2].element[0].$text);
+                temperatureSensorMaxService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, maxTemp);
+                this.platform.log.info(this.service.displayName, 'changed temperature to', maxTemp);
+              }
+            }
+          }
         }
+      }
+
+      /**
+       * Extract the next routine issue time and schedule the next download
+       */
+      const nextIssueTime = bomJson[1].product[0].amoc[8].next_routine_issue_time_utc[0].$text;
+      this.platform.log.debug(this.service.displayName, 'times for today\n', JSON.stringify(bomJson[1].product[0], null, 2));
+
+      const downloadOffset = delayMinutes * 60 * 1000;
+      const d1ms = new Date().getTime();
+      const d2ms = new Date(nextIssueTime).getTime();
+      const nextDownload = d2ms - d1ms + downloadOffset;
+      this.platform.log.debug(this.service.displayName, 'nextDownload =', nextDownload);
+
+      if (temperatureSensorMaxService !== undefined) {
+        setTimeout(() => {
+          this.scheduleUpdates(remoteFile, delayMinutes, temperatureSensorMaxService);
+        }, nextDownload );
       }
 
     // Download or parse failed, maybe invalid arguments, maybe temporary, try again in 1 hour
     } catch (error) {
-      this.platform.log.debug('error:', error);
+      this.platform.log.debug(this.service.displayName, 'scheduleUpdates:', error);
       const nextDownload = 60 * 60 * 1000;
-      this.platform.log.debug('nextDownload =', nextDownload);
 
       if (temperatureSensorMaxService !== undefined) {
         setTimeout(() => {
-          this.scheduleUpdates(remoteFile, downloadDelay, temperatureSensorMaxService);
+          this.scheduleUpdates(remoteFile, delayMinutes, temperatureSensorMaxService);
         }, nextDownload );
       }
     }
+
   }
 
   /**
@@ -161,7 +164,7 @@ export class BoMForecastAccessory {
       await Promise.all([promise1, promise2]);
 
     } catch(err) {
-      this.platform.log.debug('error: ' + err);
+      this.platform.log.debug(this.service.displayName, `downloadFromBoM: ${err}`);
     }
     client.close();
   }
@@ -177,6 +180,8 @@ export class BoMForecastAccessory {
         ignoreAttributes : false,
         attributeNamePrefix : '@_',
         preserveOrder: true,
+        textNodeName: '$text',
+        transformTagName: (tagName) => tagName.replace(/-/g, '_'),
       };
       const parser = new XMLParser(options);
       const jsonObj = parser.parse(xmlData);
@@ -184,7 +189,7 @@ export class BoMForecastAccessory {
       return jsonObj;
 
     } catch(err) {
-      this.platform.log.debug('error: ' + err);
+      this.platform.log.debug(this.service.displayName, `bomXmlToJson: ${err}`);
     }
 
   }

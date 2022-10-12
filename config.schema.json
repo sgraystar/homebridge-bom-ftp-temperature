@@ -2,12 +2,21 @@
   "pluginAlias": "Homebridge BoM FTP Temperature",
   "pluginType": "platform",
   "singular": true,
-  "footerDisplay": "FTP Public Products are found at http://www.bom.gov.au/catalogue/anon-ftp.shtml",
+  "headerDisplay": "FTP Public Products are found at http://www.bom.gov.au/catalogue/anon-ftp.shtml",
   "schema": {
     "name": {
       "title": "Name",
       "type": "string",
       "default": "BoM FTP Temperature"
+    },
+    "delayminutes": {
+      "title": "Minutes to wait after issue time before attempting download",
+      "type": "number",
+      "required": true,
+      "default": 7,
+      "minimum": 0,
+      "maximum": 59,
+      "description": "The BoM FTP site is busy around the exact issue time. A short delay avoids the rush."
     },
     "locations": {
       "type": "array",
@@ -16,30 +25,20 @@
         "type": "object",
         "properties": {
           "label": {
-            "title": "Label",
+            "title": "Your label for this location e.g. Home, Work, Beach",
             "type": "string",
             "required": true,
             "minLength": 1,
-            "maxLength": 20,
-            "default": "Mornington",
-            "description": "Your label for this location e.g. Home, Work, Beach"
+            "maxLength": 30,
+            "default": "Melbourne"
           },
           "bomproductid": {
-            "title": "BoM Product ID",
+            "title": "Forecast Product ID from BoM FTP Public Products",
             "type": "string",
             "required": true,
-            "default": "IDV10702",
+            "default": "IDV10450",
             "pattern": "^ID[D,N,Q,S,T,V,W]{1}[0-9]{5}$",
-            "description": "Forecast Product ID from BoM FTP Public Products. Format is 3 CAPS, 5 digits, no spaces. Locations that duplicate an existing product id will be ignored."
-          },
-          "downloaddelay": {
-            "title": "Minutes to wait after issue time before attempting download",
-            "type": "integer",
-            "required": true,
-            "default": 7,
-            "minimum": 1,
-            "maximum": 59,
-            "description": "The BoM FTP site is busy at the exact issue time. A short delay increases chances of a successful download."
+            "description": "Product ID format is 3 CAPS, 5 digits, no spaces. Locations that duplicate an existing ID will be ignored."
           }
         }
       }
