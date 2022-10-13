@@ -69,6 +69,6 @@ Not all forecast files have been tested, so it is possible/probable that the int
 
 If using [Homebridge Config UI X](https://www.npmjs.com/package/homebridge-config-ui-x) to install and manage the Homebridge Service then debug mode can be managed through the GUI (3 dots at upper right of screen).
 
-Please refer to [Homebridge Basic Troubleshooting](https://github.com/homebridge/homebridge/wiki/Basic-Troubleshooting) from the [Homebridge Wiki](https://github.com/homebridge/homebridge/wiki) for how to start in debug mode and find log files.
+Otherwise please refer to [Homebridge Basic Troubleshooting](https://github.com/homebridge/homebridge/wiki/Basic-Troubleshooting) from the [Homebridge Wiki](https://github.com/homebridge/homebridge/wiki) for how to start in debug mode and find log files.
 
 The debug output of this plugin includes extracts of the BoM forecast file where the plugin is expecting to find information.
