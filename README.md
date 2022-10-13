@@ -10,13 +10,14 @@
 The plugin will present a temperature sensor showing the forecast maximum temperature for the current day, at each configured location. The forecast maximum temperature is updated after the next-routine-issue-time contained in the downloaded forecast.
 
 Please note the content of BoM files change during the day. Those issued early in the day contain the forecast maximum temperature for the current day, while those issued later in the day do not.
-If you are adding a location later in the day the sensor will show a forecast temperature of zero degrees until the following day.
+
+While the BoM file does not contain the forecast maximum temperature for the current day the sensor will show the forecast maximum temperature for the following day.
 
 # Installation
 
 This plugin requires [Homebridge](https://homebridge.io) (version 1.3.5 or above).
 
-It is highly recommended that you use [Homebridge Config UI X](https://www.npmjs.com/package/homebridge-config-ui-x) to install Homebridge and configure this plugin. Alternatively you can install from the command line:
+It is recommended that you use [Homebridge Config UI X](https://www.npmjs.com/package/homebridge-config-ui-x) to install Homebridge and configure this plugin. Alternatively you can install this plugin from the command line:
 
 ```
 npm install -g homebridge-bom-ftp-temperature
@@ -49,16 +50,20 @@ Once installed the configuration of this plugin can be managed using [Homebridge
 
 - Any number of locations can be included. 
 - `label` is any name you wish to apply to the temperature sensor.
-- `bomproductid` is the Product ID of the forecast found at [BoM FTP Public Products]( http://www.bom.gov.au/catalogue/anon-ftp.shtml) The format is strictly 3 CAPS, 5 digits, no spaces. Any locations using an invalid format are ignored. Any locations that duplicate an existing Product ID are ignored.
+- `bomproductid` is the Product ID of the forecast found at [BoM FTP Public Products]( http://www.bom.gov.au/catalogue/anon-ftp.shtml) The allowed files are of type 'Forecast' with a product ID beginning with IDD, IDN, IDQ, IDS, IDT, IDV, or IDW. The format is strictly 3 CAPS, 5 digits, no spaces. Any locations using an invalid format are ignored. Any locations that duplicate an existing Product ID are ignored.
 
 ## Caveats
 
-Not all forecast files have been tested for compatibility, so it is possible/probable that the format of some files will require further work.
+Not all forecast files have been tested, so it is possible/probable that the format of some files may require further work.
+
+To allow for variable internal structures of the BoM files, this plugin takes the simple approach of presenting first available maximum temperature. As noted above, early in the day this is the forecast maximum temperature for today, while later in the day this will change to be the forecast maximum temperature for tomorrow.
+
+This does not work for BoM files containing several locations if you wish to extract the info for say the second or third location.
 
 # Debugging and Testing
 
-This plugins incorporates debug output that is not normally visible on the [homebridge](https://github.com/nfarina/homebridge) console.
-As explained in the [Homebridge troubleshooting documentation](https://github.com/nfarina/homebridge/wiki/Basic-Troubleshooting) you can start [homebridge](https://github.com/nfarina/homebridge) as follows to see debug output:
+This plugin incorporates debug output that is not normally visible on the [homebridge](https://github.com/nfarina/homebridge) console.
+Please refer to the [Homebridge troubleshooting documentation](https://github.com/nfarina/homebridge/wiki/Basic-Troubleshooting) where you can start [homebridge](https://github.com/nfarina/homebridge) as follows to see debug output:
 
 ```
 homebridge -D

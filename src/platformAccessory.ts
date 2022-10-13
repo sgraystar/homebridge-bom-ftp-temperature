@@ -90,37 +90,22 @@ export class BoMForecastAccessory {
       // Parse the xml file
       const bomJson = await this.bomXmlToJson(localFile);
       //this.platform.log.debug('bomJson\n', JSON.stringify(bomJson, null, 2));
-      const bomJsonToday = bomJson[1].product[1].forecast[2].area[0];
-      this.platform.log.debug(this.service.displayName, 'conditions for today\n', JSON.stringify(bomJsonToday, null, 2));
+      const bomJsonForecast = bomJson[1].product[1].forecast;
+      //this.platform.log.debug(this.service.displayName, 'forecasts\n', JSON.stringify(bomJsonForecast, null, 2));
 
       /**
        * Extract the forecast maximum temperature and push the new forecast temperature value to HomeKit
-       * The air_temperature_maximum for today changes index within forecast_period[], and is not always present
        */
 
-      //if (bomJson[1]?.product[1]?.forecast[2]?.area[0]?.forecast_period[1][':@']['@_type'] === 'air_temperature_maximum') {
-      //  const maxTemp = Number(bomJson[1].product[1].forecast[2].area[0].forecast_period[1].element[0].$text);
-      //}
-
-      for(const key1 in bomJsonToday) {
-        for (const key2 in bomJsonToday[key1]) {
-          for (const key3 in bomJsonToday[key1][key2]) {
-            for (const key4 in bomJsonToday[key1][key2][key3]) {
-              if (bomJsonToday[key1][key2][key3][key4] === 'air_temperature_maximum') {
-                const maxTemp = Number(bomJsonToday[key1][key2].element[0].$text);
-                temperatureSensorMaxService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, maxTemp);
-                this.platform.log.info(this.service.displayName, 'changed temperature to', maxTemp);
-              }
-            }
-          }
-        }
-      }
+      const newTemp = Number(await this.extractMaxTemp(bomJsonForecast));
+      temperatureSensorMaxService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, newTemp);
+      this.platform.log.info(this.service.displayName, 'changed temperature to', newTemp);
 
       /**
        * Extract the next routine issue time and schedule the next download
        */
       const nextIssueTime = bomJson[1].product[0].amoc[8].next_routine_issue_time_utc[0].$text;
-      this.platform.log.debug(this.service.displayName, 'times for today\n', JSON.stringify(bomJson[1].product[0], null, 2));
+      //this.platform.log.debug(this.service.displayName, 'times for today\n', JSON.stringify(bomJson[1].product[0], null, 2));
 
       const downloadOffset = delayMinutes * 60 * 1000;
       const d1ms = new Date().getTime();
@@ -192,6 +177,32 @@ export class BoMForecastAccessory {
       this.platform.log.debug(this.service.displayName, `bomXmlToJson: ${err}`);
     }
 
+  }
+
+  /**
+   * Extract the first air_temperature_maximum from the forecast
+   */
+  async extractMaxTemp(jsonObj): Promise<string> {
+    let maxTemp = '';
+    for (const key1 in jsonObj) {
+      for (const key2 in jsonObj[key1]) {
+        for (const key3 in jsonObj[key1][key2]) {
+          for (const key4 in jsonObj[key1][key2][key3]) {
+            for (const key5 in jsonObj[key1][key2][key3][key4]) {
+              for (const key6 in jsonObj[key1][key2][key3][key4][key5]) {
+                for (const key7 in jsonObj[key1][key2][key3][key4][key5][key6]) {
+                  if (jsonObj[key1][key2][key3][key4][key5][key6][key7] === 'air_temperature_maximum') {
+                    maxTemp = jsonObj[key1][key2][key3][key4][key5].element[0].$text;
+                    return maxTemp;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return maxTemp;
   }
 
 }

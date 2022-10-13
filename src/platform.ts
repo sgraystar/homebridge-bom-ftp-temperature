@@ -63,7 +63,8 @@ export class BoMForecastPlatform implements DynamicPlatformPlugin {
 
       // Check that the format of the BoM Product ID is valid
       const id = device.bomproductid.toString();
-      const regStr = '^ID[D,N,Q,S,T,V,W]{1}[0-9]{5}$';
+      //const regStr = '^ID[D,N,Q,S,T,V,W]{1}[0-9]{5}$';
+      const regStr = '^.*$';
       const regexp = new RegExp(regStr);
       if (id.match(regexp)) {
         // eslint-disable-next-line no-console
