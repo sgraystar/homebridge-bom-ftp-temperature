@@ -16,7 +16,7 @@
       "default": 7,
       "minimum": 0,
       "maximum": 59,
-      "description": "The BoM FTP site is busy around the exact issue time. A short delay avoids the rush."
+      "description": "The BoM FTP site is busy around the exact issue time and delay avoids the rush. The delay is capped at 59 minutes."
     },
     "locations": {
       "type": "array",

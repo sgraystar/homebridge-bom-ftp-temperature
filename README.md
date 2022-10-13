@@ -25,7 +25,6 @@ npm install -g homebridge-bom-ftp-temperature
 
 Once installed the configuration of this plugin can be managed using [Homebridge Config UI X](https://www.npmjs.com/package/homebridge-config-ui-x) or by following the example config.
 
-
 ## Example Configuration
 
 ```
@@ -38,6 +37,10 @@ Once installed the configuration of this plugin can be managed using [Homebridge
                 {
                     "label": "Melbourne",
                     "bomproductid": "IDV10450"
+                },
+                {
+                    "label": "...",
+                    "bomproductid": "..."
                 }
             ],
             "platform": "Homebridge BoM FTP Temperature"
@@ -46,27 +49,26 @@ Once installed the configuration of this plugin can be managed using [Homebridge
     ]
 ```
 
-- `delayminutes` is the number of minutes `0-59` to wait after the BoM next-routine-issue-time before starting the FTP download. The BoM FTP site is busy around the exact issue time so a short delay avoids the rush.
+Platform parameters:
+- `delayminutes` is the number of minutes `0-59` to wait after the next-routine-issue-time before starting the FTP download. The BoM FTP site is busy around the exact issue time so a short delay avoids the rush.
 
-- Any number of locations can be included. 
-- `label` is any name you wish to apply to the temperature sensor.
-- `bomproductid` is the Product ID of the forecast found at [BoM FTP Public Products]( http://www.bom.gov.au/catalogue/anon-ftp.shtml) The allowed files are of type 'Forecast' with a product ID beginning with IDD, IDN, IDQ, IDS, IDT, IDV, or IDW. The format is strictly 3 CAPS, 5 digits, no spaces. Any locations using an invalid format are ignored. Any locations that duplicate an existing Product ID are ignored.
+Location parameters:
+- Multiple locations can be included. Each location will present a temperature sensor.
+- `label` is the name you wish to apply to the temperature sensor.
+- `bomproductid` is the Product ID of the forecast found at [BoM FTP Public Products]( http://www.bom.gov.au/catalogue/anon-ftp.shtml) The allowed entries begin with IDD, IDN, IDQ, IDS, IDT, IDV, or IDW. The format is strictly 3 CAPS, 5 digits, no spaces. Any locations using an invalid format are ignored. Any locations that duplicate an existing Product ID are ignored.
 
 ## Caveats
 
-Not all forecast files have been tested, so it is possible/probable that the format of some files may require further work.
+To allow for variable internal structure of the BoM XML files, this plugin takes the simplistic approach of presenting first found 'air_temperature_maximum'. Not all forecast files contain a forecast maximum temperature.
+For BoM files containing forecasts for multiple days this will only find the info for the current day or following day.
+For BoM files containing several locations this will only find the info for the first location.
 
-To allow for variable internal structures of the BoM files, this plugin takes the simple approach of presenting first found maximum temperature.
-
-This does not work for BoM files containing several locations if you wish to extract the info for say the second or subsequent location (FFS).
+Not all forecast files have been tested, so it is possible/probable that the internal structure of some files may require further work.
 
 # Debugging and Testing
 
-This plugin incorporates debug output that is not normally visible on the [homebridge](https://github.com/nfarina/homebridge) console.
-Please refer to the [Homebridge troubleshooting documentation](https://github.com/nfarina/homebridge/wiki/Basic-Troubleshooting) where you can start [homebridge](https://github.com/nfarina/homebridge) as follows to see debug output:
+If using [Homebridge Config UI X](https://www.npmjs.com/package/homebridge-config-ui-x) to install and manage the Homebridge Service then debug mode can be managed through the GUI (3 dots at upper right of screen).
 
-```
-homebridge -D
-```
+Please refer to [Homebridge Basic Troubleshooting](https://github.com/homebridge/homebridge/wiki/Basic-Troubleshooting) from the [Homebridge Wiki](https://github.com/homebridge/homebridge/wiki) for how to start in debug mode and find log files.
 
-The debug output includes extracts of the BoM forecast file where the plugin is expecting to extract information.
+The debug output of this plugin includes extracts of the BoM forecast file where the plugin is expecting to find information.
