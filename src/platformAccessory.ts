@@ -33,7 +33,7 @@ export class BoMForecastAccessory {
      * see https://developers.homebridge.io/#/service/TemperatureSensor
      */
 
-    const serviceName1 = accessory.context.device.label + ' Today Max';
+    const serviceName1 = accessory.context.device.label + ' Max';
     const serviceSubtype1 = accessory.context.device.bomproductid + '-max';
     this.service = this.accessory.getService(serviceName1) ||
       this.accessory.addService(this.platform.Service.TemperatureSensor, serviceName1, serviceSubtype1);
