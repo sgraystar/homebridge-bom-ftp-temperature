@@ -90,26 +90,16 @@ export class BoMForecastAccessory {
       // Parse the xml file
       const bomJson = await this.bomXmlToJson(localFile);
       //this.platform.log.debug('bomJson\n', JSON.stringify(bomJson, null, 2));
-      const bomJsonForecast = bomJson[1].product[1].forecast;
-      //this.platform.log.debug(this.service.displayName, 'forecasts\n', JSON.stringify(bomJsonForecast, null, 2));
-
-      /**
-       * Extract the forecast maximum temperature and push the new forecast temperature value to HomeKit
-       */
-
-      const newTemp = Number(await this.extractMaxTemp(bomJsonForecast));
-      temperatureSensorMaxService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, newTemp);
-      this.platform.log.info(this.service.displayName, 'changed temperature to', newTemp);
 
       /**
        * Extract the next routine issue time and schedule the next download
        */
-      const nextIssueTime = bomJson[1].product[0].amoc[8].next_routine_issue_time_utc[0].$text;
-      //this.platform.log.debug(this.service.displayName, 'times for today\n', JSON.stringify(bomJson[1].product[0], null, 2));
+      const nextRoutineIssueTimeUTC = bomJson[1].product[0].amoc[8].next_routine_issue_time_utc[0].$text;
+      this.platform.log.debug(this.service.displayName, 'times for today\n', JSON.stringify(bomJson[1].product[0], null, 2));
 
       const downloadOffset = delayMinutes * 60 * 1000;
       const d1ms = new Date().getTime();
-      const d2ms = new Date(nextIssueTime).getTime();
+      const d2ms = new Date(nextRoutineIssueTimeUTC).getTime();
       const nextDownload = d2ms - d1ms + downloadOffset;
       this.platform.log.debug(this.service.displayName, 'nextDownload =', nextDownload);
 
@@ -117,6 +107,20 @@ export class BoMForecastAccessory {
         setTimeout(() => {
           this.scheduleUpdates(remoteFile, delayMinutes, temperatureSensorMaxService);
         }, nextDownload );
+      }
+
+      /**
+       * Extract the forecast maximum temperature and push the new forecast temperature value to HomeKit
+       */
+      const nextRoutineIssueTimeLocal = bomJson[1].product[0].amoc[9].next_routine_issue_time_local[0].$text;
+      const d2h = new Date(nextRoutineIssueTimeLocal).getHours();
+      if (d2h > 12) {
+        const bomJsonForecast = bomJson[1].product[1].forecast;
+        this.platform.log.debug(this.service.displayName, 'forecasts\n', JSON.stringify(bomJsonForecast, null, 2));
+
+        const newTemp = Number(await this.extractMaxTemp(bomJsonForecast));
+        temperatureSensorMaxService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, newTemp);
+        this.platform.log.info(this.service.displayName, 'changed temperature to', newTemp);
       }
 
     // Download or parse failed, maybe invalid arguments, maybe temporary, try again in 1 hour

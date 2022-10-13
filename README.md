@@ -9,9 +9,9 @@
 
 The plugin will present a temperature sensor showing the forecast maximum temperature for the current day, at each configured location. The forecast maximum temperature is updated after the next-routine-issue-time contained in the downloaded forecast.
 
-Please note the content of BoM files change during the day. Those issued early in the day contain the forecast maximum temperature for the current day, while those issued later in the day do not.
+Please note the content of BoM files change during the day. Those issued early in the day contain the forecast maximum temperature for the current day, while those issued later in the day may not.
 
-While the BoM file does not contain the forecast maximum temperature for the current day the sensor will show the forecast maximum temperature for the following day.
+If the temperature sensor is initialised while the BoM file does not contain the forecast maximum temperature for the current day, then the sensor will show zero degrees until it is updated the following day.
 
 # Installation
 
@@ -56,9 +56,9 @@ Once installed the configuration of this plugin can be managed using [Homebridge
 
 Not all forecast files have been tested, so it is possible/probable that the format of some files may require further work.
 
-To allow for variable internal structures of the BoM files, this plugin takes the simple approach of presenting first available maximum temperature. As noted above, early in the day this is the forecast maximum temperature for today, while later in the day this will change to be the forecast maximum temperature for tomorrow.
+To allow for variable internal structures of the BoM files, this plugin takes the simple approach of presenting first found maximum temperature.
 
-This does not work for BoM files containing several locations if you wish to extract the info for say the second or third location.
+This does not work for BoM files containing several locations if you wish to extract the info for say the second or subsequent location (FFS).
 
 # Debugging and Testing
 
