@@ -1,5 +1,5 @@
 {
-  "private": true,
+  "private": false,
   "displayName": "Homebridge BoM FTP Temperature",
   "name": "homebridge-bom-ftp-temperature",
   "version": "0.0.0",
