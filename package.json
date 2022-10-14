@@ -2,8 +2,8 @@
   "private": true,
   "displayName": "Homebridge BoM FTP Temperature",
   "name": "homebridge-bom-ftp-temperature",
-  "version": "0.1.0",
-  "description": "The forecast maximum temperature for today is downloaded from BoM FTP Public Products and presented as a temperature sensor.",
+  "version": "0.0.0",
+  "description": "The forecast maximum temperature is downloaded from BoM FTP Public Products and presented as a temperature sensor.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -21,7 +21,8 @@
     "lint": "eslint src/**.ts --max-warnings=0",
     "watch": "npm run build && npm link && nodemon",
     "build": "rimraf ./dist && tsc",
-    "prepublishOnly": "npm run lint && npm run build"
+    "prepublishOnly": "npm run lint && npm run build",
+    "test": "echo \"No test specified\""
   },
   "keywords": [
     "homebridge-plugin",
