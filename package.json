@@ -3,7 +3,7 @@
   "displayName": "Homebridge BoM FTP Temperature",
   "name": "homebridge-bom-ftp-temperature",
   "version": "0.1.2",
-  "description": "The forecast maximum temperature is downloaded from BoM FTP Public Products and presented as a temperature sensor.",
+  "description": "The forecast maximum temperature is downloaded from Australian Bureau of Meteorology FTP Public Products and presented as a temperature sensor.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -29,6 +29,7 @@
     "BoM",
     "bom.gov.au",
     "Bureau of Meteorology",
+    "Australia",
     "FTP"
   ],
   "devDependencies": {

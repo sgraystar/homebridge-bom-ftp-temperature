@@ -7,9 +7,9 @@
 
 # Homebridge BoM FTP Temperature Plugin
 
-The plugin will present a temperature sensor showing the forecast maximum temperature for the current day, at each configured location. The forecast maximum temperature is updated each morning after the next-routine-issue-time contained in the previously downloaded forecast.
+The plugin will present a temperature sensor for each configured location showing the forecast maximum temperature for the current day. The forecast maximum temperature is extracted from Australian Bureau of Meteorology files and updated each morning after the next-routine-issue-time contained in the previously downloaded forecast.
 
-Please note the content of BoM files change during the day. Those issued early in the day contain the forecast maximum temperature for the current day, while those issued later in the day do not.
+Please note the content of the BoM files change during the day. Those issued early in the day contain the forecast maximum temperature for the current day, while those issued later in the day do not.
 
 If the temperature sensor is initialised while the BoM file does not contain the forecast maximum temperature for the current day, then the sensor will show zero degrees until it is updated the following morning.
 
