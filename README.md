@@ -59,9 +59,9 @@ Location parameters:
 
 ## Caveats
 
-To allow for variable internal structure of the BoM XML files, this plugin takes the simplistic approach of presenting first found 'air_temperature_maximum'. Not all forecast files contain a forecast maximum temperature.
-For BoM files containing forecasts for multiple days this will only find the info for the current day or following day.
-For BoM files containing several locations this will only find the info for the first location.
+Not all BoM forecast files contain a forecast maximum temperature.
+For BoM files containing forecasts for multiple days this will only present info for the current day.
+For BoM files containing several locations this will only present info for the first location in the file.
 
 Not all forecast files have been tested, so it is possible/probable that the internal structure of some files may require further work.
 

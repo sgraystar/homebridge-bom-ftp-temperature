@@ -29,7 +29,10 @@ export class BoMForecastPlatform implements DynamicPlatformPlugin {
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
       // run the method to discover / register your devices as accessories
-      this.discoverDevices();
+      const checkForEmpty = this.config.locations;
+      if (Array.isArray(checkForEmpty) && checkForEmpty.length > 0) {
+        this.discoverDevices();
+      }
     });
   }
 
@@ -66,9 +69,6 @@ export class BoMForecastPlatform implements DynamicPlatformPlugin {
       const regStr = '^ID[D,N,Q,S,T,V,W]{1}[0-9]{5}$';
       const regexp = new RegExp(regStr);
       if (id.match(regexp)) {
-        // eslint-disable-next-line no-console
-        //console.log('BoM Product ID is OK');
-
         // generate a unique id for the accessory this should be generated from
         // something globally unique, but constant, for example, the device serial
         // number or MAC address
