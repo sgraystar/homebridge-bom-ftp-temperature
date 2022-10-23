@@ -54,14 +54,18 @@ Platform parameters:
 
 Location parameters:
 - Multiple locations can be included. Each location will present a temperature sensor.
-- `label` is the name you wish to apply to the temperature sensor.
+- `label` is the BoM Location name or the name you wish to apply to the temperature sensor.
 - `bomproductid` is the Product ID of the forecast found at [BoM FTP Public Products]( http://www.bom.gov.au/catalogue/anon-ftp.shtml) The allowed entries begin with IDD, IDN, IDQ, IDS, IDT, IDV, or IDW. The format is strictly 3 CAPS, 5 digits, no spaces. Any locations using an invalid format are ignored. Any locations that duplicate an existing Product ID are ignored.
 
 ## Caveats
 
 Not all BoM forecast files contain a forecast maximum temperature.
+
 For BoM files containing forecasts for multiple days this will only present info for the current day.
-For BoM files containing several locations this will only present info for the first location in the file.
+
+For BoM files containing several locations this will first search using the config label. If a matching location is found in the file this will present info for that location. If a matching location is not found this will present info for the first location in the file.
+
+Changes to the config do not apply to existing locations. For example, the label on a location could be updated by changing the config, and using [Homebridge Config UI X](https://www.npmjs.com/package/homebridge-config-ui-x) to remove the cached accessory and restart the server.
 
 Not all forecast files have been tested, so it is possible/probable that the internal structure of some files may require further work.
 

@@ -33,7 +33,7 @@ export class BoMForecastAccessory {
      * see https://developers.homebridge.io/#/service/TemperatureSensor
      */
 
-    const serviceName1 = accessory.context.device.label + ' Max';
+    const serviceName1 = accessory.context.device.label + ' max';
     const serviceSubtype1 = accessory.context.device.bomproductid + '-max';
     this.service = this.accessory.getService(serviceName1) ||
       this.accessory.addService(this.platform.Service.TemperatureSensor, serviceName1, serviceSubtype1);
@@ -116,7 +116,9 @@ export class BoMForecastAccessory {
       const bomJsonForecast = bomJson[1].product[1].forecast;
       this.platform.log.debug(this.service.displayName, 'forecasts\n', JSON.stringify(bomJsonForecast, null, 2));
 
-      const newTemp = await this.extractMaxTemp(bomJsonForecast);
+      const searchLocation = await this.extractLocation(bomJsonForecast, this.accessory.context.device.label);
+
+      const newTemp = await this.extractMaxTemp(searchLocation);
       if (newTemp !== '') {
         temperatureSensorMaxService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, Number(newTemp));
         this.platform.log.info(this.service.displayName, 'changed temperature to', newTemp);
@@ -183,26 +185,48 @@ export class BoMForecastAccessory {
   }
 
   /**
-   * Extract the first air_temperature_maximum from the forecast and check it is for today
+   * Search for a forecast with the named Location
    */
-  async extractMaxTemp(jsonObj): Promise<string> {
-    let airTemperatureMaximum = '';
+  async extractLocation(jsonObj, searchTarget) {
+    let result = jsonObj;
+
+    // Convert searchstring to title case to compare with BoM locations
+    const tempString = searchTarget.toLowerCase().trim().replace(/\s+/g, ' ').split(' ');
+    for (let i = 0; i < tempString.length; i++) {
+      tempString[i] = tempString[i].charAt(0).toUpperCase() + tempString[i].slice(1);
+    }
+    const searchString = tempString.join(' ');
+    this.platform.log.debug(this.service.displayName, 'searching for', searchString);
+
     for (const key1 in jsonObj) {
+      if (jsonObj[key1] === searchString) {
+        this.platform.log.debug(this.service.displayName, searchString, [key1]);
+      }
       for (const key2 in jsonObj[key1]) {
+        if (jsonObj[key1][key2] === searchString) {
+          this.platform.log.debug(this.service.displayName, searchString, [key1], [key2]);
+        }
         for (const key3 in jsonObj[key1][key2]) {
+          if (jsonObj[key1][key2][key3] === searchString && jsonObj[key1][key2]['@_type'] === 'location') {
+            this.platform.log.debug(this.service.displayName, searchString, [key1], [key2], [key3]);
+            result = jsonObj[key1];
+            return result;
+          }
           for (const key4 in jsonObj[key1][key2][key3]) {
+            if (jsonObj[key1][key2][key3][key4] === searchString) {
+              this.platform.log.debug(this.service.displayName, searchString, [key1], [key2], [key3], [key4]);
+            }
             for (const key5 in jsonObj[key1][key2][key3][key4]) {
+              if (jsonObj[key1][key2][key3][key4][key5] === searchString) {
+                this.platform.log.debug(this.service.displayName, searchString, [key1], [key2], [key3], [key4], [key5]);
+              }
               for (const key6 in jsonObj[key1][key2][key3][key4][key5]) {
+                if (jsonObj[key1][key2][key3][key4][key5][key6] === searchString) {
+                  this.platform.log.debug(this.service.displayName, searchString, [key1], [key2], [key3], [key4], [key5], [key6]);
+                }
                 for (const key7 in jsonObj[key1][key2][key3][key4][key5][key6]) {
-                  if (jsonObj[key1][key2][key3][key4][key5][key6][key7] === 'air_temperature_maximum') {
-                    const day0 = 0;
-                    const day = Number([key3]);
-                    this.platform.log.debug(this.service.displayName, 'path', [key1], [key2], [key3], [key4], [key5], [key6], [key7]);
-                    // Only return the forecast maximum temperature if it is for today
-                    if (day === day0) {
-                      airTemperatureMaximum = jsonObj[key1][key2][key3][key4][key5].element[0].$text;
-                    }
-                    return airTemperatureMaximum;
+                  if (jsonObj[key1][key2][key3][key4][key5][key6][key7] === searchString) {
+                    this.platform.log.debug(this.service.displayName, searchString, [key1], [key2], [key3], [key4], [key5], [key6], [key7]);
                   }
                 }
               }
@@ -211,7 +235,91 @@ export class BoMForecastAccessory {
         }
       }
     }
-    return airTemperatureMaximum;
+    return result;
+  }
+
+  /**
+   * Extract the first air_temperature_maximum from the forecast and check it is for today
+   */
+  async extractMaxTemp(jsonObj): Promise<string> {
+    let result = '';
+    for (const key1 in jsonObj) {
+      for (const key2 in jsonObj[key1]) {
+        for (const key3 in jsonObj[key1][key2]) {
+          for (const key4 in jsonObj[key1][key2][key3]) {
+            for (const key5 in jsonObj[key1][key2][key3][key4]) {
+              for (const key6 in jsonObj[key1][key2][key3][key4][key5]) {
+                if (jsonObj[key1][key2][key3][key4][key5][key6] === 'air_temperature_maximum') {
+                  const day0 = 0;
+                  const day = Number([key2]);
+                  this.platform.log.debug(this.service.displayName, 'path', [key1], [key2], [key3], [key4], [key5], [key6]);
+                  // Only return the forecast maximum temperature if it is for today
+                  if (day === day0) {
+                    result = jsonObj[key1][key2][key3][key4].element[0].$text;
+                  }
+                  return result;
+                }
+                for (const key7 in jsonObj[key1][key2][key3][key4][key5][key6]) {
+                  if (jsonObj[key1][key2][key3][key4][key5][key6][key7] === 'air_temperature_maximum') {
+                    const day0 = 0;
+                    const day = Number([key3]);
+                    this.platform.log.debug(this.service.displayName, 'path', [key1], [key2], [key3], [key4], [key5], [key6], [key7]);
+                    // Only return the forecast maximum temperature if it is for today
+                    if (day === day0) {
+                      result = jsonObj[key1][key2][key3][key4][key5].element[0].$text;
+                    }
+                    return result;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Helper function, search the JSON tree for a given string
+   */
+  async extractString(jsonObj, searchTarget) {
+    const searchString = searchTarget;
+    for (const key1 in jsonObj) {
+      if (jsonObj[key1] === searchString) {
+        this.platform.log.debug(this.service.displayName, searchString, [key1]);
+      }
+      for (const key2 in jsonObj[key1]) {
+        if (jsonObj[key1][key2] === searchString) {
+          this.platform.log.debug(this.service.displayName, searchString, [key1], [key2]);
+        }
+        for (const key3 in jsonObj[key1][key2]) {
+          if (jsonObj[key1][key2][key3] === searchString) {
+            this.platform.log.debug(this.service.displayName, searchString, [key1], [key2], [key3]);
+          }
+          for (const key4 in jsonObj[key1][key2][key3]) {
+            if (jsonObj[key1][key2][key3][key4] === searchString) {
+              this.platform.log.debug(this.service.displayName, searchString, [key1], [key2], [key3], [key4]);
+            }
+            for (const key5 in jsonObj[key1][key2][key3][key4]) {
+              if (jsonObj[key1][key2][key3][key4][key5] === searchString) {
+                this.platform.log.debug(this.service.displayName, searchString, [key1], [key2], [key3], [key4], [key5]);
+              }
+              for (const key6 in jsonObj[key1][key2][key3][key4][key5]) {
+                if (jsonObj[key1][key2][key3][key4][key5][key6] === searchString) {
+                  this.platform.log.debug(this.service.displayName, searchString, [key1], [key2], [key3], [key4], [key5], [key6]);
+                }
+                for (const key7 in jsonObj[key1][key2][key3][key4][key5][key6]) {
+                  if (jsonObj[key1][key2][key3][key4][key5][key6][key7] === searchString) {
+                    this.platform.log.debug(this.service.displayName, searchString, [key1], [key2], [key3], [key4], [key5], [key6], [key7]);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
 }

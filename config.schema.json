@@ -25,7 +25,7 @@
         "type": "object",
         "properties": {
           "label": {
-            "title": "Your label for this location e.g. Home, Work, Beach",
+            "title": "The BoM Location name, or your label for this location e.g. Home, Work, Beach",
             "type": "string",
             "required": true,
             "minLength": 1,
