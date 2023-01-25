@@ -30,6 +30,7 @@
     "bom.gov.au",
     "Bureau of Meteorology",
     "Australia",
+    "Weather",
     "FTP"
   ],
   "devDependencies": {
