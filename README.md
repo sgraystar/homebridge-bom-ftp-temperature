@@ -53,6 +53,7 @@ Platform parameters:
 - `delayminutes` is the number of minutes `0-59` to wait after the next-routine-issue-time before starting the FTP download. The BoM FTP site is busy around the exact issue time so a short delay avoids the rush.
 
 Location parameters:
+
 Multiple locations can be included. Each location will present a temperature sensor.
 - `label` is the BoM Location name or the name you wish to apply to the temperature sensor.
 - `bomproductid` is the Product ID of the forecast found at [BoM FTP Public Products]( http://www.bom.gov.au/catalogue/anon-ftp.shtml) The allowed entries begin with IDD, IDN, IDQ, IDS, IDT, IDV, or IDW. The format is strictly 3 CAPS, 5 digits, no spaces. Any locations using an invalid format are ignored. Any locations that duplicate an existing Product ID are ignored.
