@@ -4,6 +4,7 @@ import ftp = require('basic-ftp');
 import { XMLParser } from 'fast-xml-parser';
 import os from 'node:os';
 import * as fs from 'node:fs';
+import path = require('path');
 
 /**
  * Platform Accessory
@@ -84,11 +85,13 @@ export class BoMForecastAccessory {
   async scheduleUpdates(remoteFile, delayMinutes, temperatureSensorMaxService) {
     try {
       // Download the BoM file
-      const localFile = (os.tmpdir() + '\\' + remoteFile);
+      // const localFile = (os.tmpdir() + '\\' + remoteFile);
+      const localFile = path.join(os.tmpdir(), remoteFile);
+      this.platform.log.debug(this.service.displayName, 'temp BoM file =', localFile);
+
       await this.downloadFromBoM(localFile, remoteFile);
 
       // Parse the xml file
-      //const bomJson = await this.bomXmlToJson(localFile);
       const bomJson = await this.bomXmlToJson(localFile);
       //this.platform.log.debug('bomJson\n', JSON.stringify(bomJson, null, 2));
 
