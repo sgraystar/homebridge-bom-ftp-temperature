@@ -1,9 +1,4 @@
-
-<p align="center">
-
-<img src="https://github.com/homebridge/branding/raw/master/logos/homebridge-wordmark-logo-vertical.png" width="150">
-
-</p>
+Archived as I am not currently using Homebridge. AFAIK it 'should' work OK with Homebridge 2.0
 
 # Homebridge BoM FTP Temperature Plugin
 
